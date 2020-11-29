@@ -240,7 +240,7 @@ print(global_output_vectors)
 outputDf=pd.DataFrame(global_output_vectors)
 outputDf=outputDf.drop_duplicates(ignore_index=True)
 XLSXwriter=pd.ExcelWriter('output.xlsx')
-outputDf.groupby('key').count()['value'].to_excel(XLSXwriter,sheet_name='Summary',columns=['Key','Number of repetitions'])
+outputDf.groupby('key').count()['value'].to_excel(XLSXwriter,sheet_name='Summary',columns=['Number of repetitions'])
 outputDf.to_excel(XLSXwriter,sheet_name='All data')
 XLSXwriter.save()
 

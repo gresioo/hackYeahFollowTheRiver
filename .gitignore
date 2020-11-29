@@ -130,3 +130,5 @@ dmypy.json
 
 #geckodriver
 geckodriver.extensions
+*.zip
+*.xlsx
