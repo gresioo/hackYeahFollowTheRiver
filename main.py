@@ -142,6 +142,7 @@ def check_all_regexps(data,output_data,what_to_add):
 #parameters
 number_of_iteration = 1
 number_of_results_per_iteration = 3 
+sub_page_level = 2
 query = "KOTY ROSYJSKIE"
 
 
@@ -156,7 +157,7 @@ print(out)
 global_output_vectors = []
 
 
-def search_engine(phrase, results_no,local_output_vectors):
+def search_engine(phrase, results_no,subpage_level,local_output_vectors):
     browser = webdriver.Firefox()
     try:
         list_of_pages_gen = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
@@ -171,17 +172,17 @@ def search_engine(phrase, results_no,local_output_vectors):
                      
     #      ]
     # if True:
-        list_of_pages = [x for x in list_of_pages_gen]
+        list_of_pages = [(x,0) for x in list_of_pages_gen]
         
         for url_item in list_of_pages:
             
             #URL data extraction
-            url_scheme = urlparse(url_item).scheme
-            url_domain = urlparse(url_item).netloc
-            url_path = urlparse(url_item).path
-            url_parameters = urlparse(url_item).params
-            url_query = urlparse(url_item).query
-            print(url_item)
+            url_scheme = urlparse(url_item[0]).scheme
+            url_domain = urlparse(url_item[0]).netloc
+            url_path = urlparse(url_item[0]).path
+            url_parameters = urlparse(url_item[0]).params
+            url_query = urlparse(url_item[0]).query
+            print(url_item[0])
             #URL rebuild
             url_full = url_scheme+"://"+url_domain+url_path 
             
@@ -195,10 +196,13 @@ def search_engine(phrase, results_no,local_output_vectors):
                         linkaddress=link.get_attribute('href')
                         try:
                             if not linkaddress in list_of_pages:
-                                if 'oferta' in linkaddress: #link do pojedynczej oferty
-                                    list_of_pages.append(linkaddress)
-                                elif 'oferty' in linkaddress: #link do następnej podstrony
-                                    list_of_pages.append(linkaddress)
+                                level = url_item[1]+1
+                                if level < subpage_level:
+                                    print("Level process")
+                                    if 'oferta' in linkaddress: #link do pojedynczej oferty
+                                        list_of_pages.append((linkaddress,level))
+                                    elif 'oferty' in linkaddress: #link do następnej podstrony
+                                        list_of_pages.append((linkaddress,level))
                         except TypeError: #jeśli nie ma hrefa (podobno się zdarzyło)
                             pass
                 try:
@@ -232,7 +236,7 @@ def search_engine(phrase, results_no,local_output_vectors):
         browser.close()
         return local_output_vectors
         
-global_output_vectors = search_engine(query, number_of_results_per_iteration, global_output_vectors)
+global_output_vectors = search_engine(query, number_of_results_per_iteration, sub_page_level, global_output_vectors)
 
 print(global_output_vectors)
 
