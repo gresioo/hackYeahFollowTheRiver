@@ -162,20 +162,20 @@ global_output_vectors = dict()
 
 
 def search_engine(phrase, results_no,local_output_vectors):
-
-    try:
-        list_of_pages = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
-    except Exception as ex:
-        print("HTTP Error:",ex)
-    finally:
+    browser = webdriver.Firefox()
+    # try:
+    #     list_of_pages = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
+    # except Exception as ex:
+    #     print("HTTP Error:",ex)
+    # finally:
    
-    # list_of_pages = ["https://www.olx.pl/oferta/iphone-xs-max-512gb-silver-bez-face-id-tanio-CID99-IDHufF7.html#b4642646e3;promoted",
-    #                  "https://www.olx.pl/oferta/tanio-iphone-6-plus-128gb-super-stan-CID99-IDGRvIq.html#b4642646e3",
-    #                  "https://allegrolokalnie.pl/oferta/iphone-8-64-gb-zloty-tanio",
-    #                  "https://www.twoj-smartfon.pl/pl/p/Iphone-11-64-GBCzarnyPL-DystrybucjaGwarancja-producentaWysylka-24HPOLSKI-SKLEP/1243"
+    list_of_pages = ["https://www.olx.pl/oferty/q-koty-rosyjskie/",
+        #              "https://www.olx.pl/oferta/tanio-iphone-6-plus-128gb-super-stan-CID99-IDGRvIq.html#b4642646e3",
+        #              "https://allegrolokalnie.pl/oferta/iphone-8-64-gb-zloty-tanio",
+        #              "https://www.twoj-smartfon.pl/pl/p/Iphone-11-64-GBCzarnyPL-DystrybucjaGwarancja-producentaWysylka-24HPOLSKI-SKLEP/1243"
                      
-    #     ]
-
+         ]
+    if True:
         for url_item in list_of_pages:
             
             #URL data extraction
@@ -189,17 +189,33 @@ def search_engine(phrase, results_no,local_output_vectors):
             url_full = url_scheme+"://"+url_domain+url_path 
             
             if url_domain == "olx.pl" or url_domain == "www.olx.pl":
-#                if not 'oferta' in url_full:  #list of pages... crawl it
-
-                browser = webdriver.Firefox()
+                
+                    
                 browser.get(url_full)
+                if not 'oferta' in url_full:  #list of pages... crawl it
+                    alllinks=browser.find_elements_by_tag_name('a')
+                    for link in alllinks:
+                        linkaddress=link.get_attribute('href')
+                        try:
+                            if not linkaddress in list_of_pages:
+                                if 'oferta' in linkaddress: #link do pojedynczej oferty
+                                    list_of_pages.append(linkaddress)
+                                elif 'oferty' in linkaddress: #link do następnej podstrony
+                                    list_of_pages.append(linkaddress)
+                        except TypeError: #jeśli nie ma hrefa (podobno się zdarzyło)
+                            pass
                 try:
                     browser.find_element_by_id("contact_methods_below").click()
                 except selenium.common.exceptions.NoSuchElementException:
                     pass
+                except selenium.common.exceptions.ElementClickInterceptedException:
+                    browser.find_element_by_id("onetrust-accept-btn-handler").click()
+                    browser.find_element_by_id("contact_methods_below").click()
+                except selenium.common.exceptions.ElementNotInteractableException:
+                    pass
                 time.sleep(0.5)
                 source_to_check = browser.page_source
-                browser.close()
+                # browser.close()
             elif url_domain == "allegro.pl":
                 browser = webdriver.Firefox()
                 browser.get(url_full+"#aboutSeller")
@@ -208,7 +224,7 @@ def search_engine(phrase, results_no,local_output_vectors):
                 #results = soup.find('section','_sizcr _1xzdi _ai5yc _1vzz9 _ku8d6 _1o9j9 _1yx73 _1k7mg _10a7o')
                 
                 source_to_check = browser.page_source
-                browser.close()
+                # browser.close()
             else:
                 pass
                 static_html = requests.get(url_full)
@@ -216,7 +232,7 @@ def search_engine(phrase, results_no,local_output_vectors):
 
             local_output_vectors = check_all_regexps(source_to_check, local_output_vectors,[url_domain,url_path])
         
-        
+        browser.close()
         return local_output_vectors
         
 global_output_vectors = search_engine(query, number_of_results_per_iteration, global_output_vectors)
