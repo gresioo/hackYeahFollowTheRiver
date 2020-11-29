@@ -159,7 +159,7 @@ global_output_vectors = []
 def search_engine(phrase, results_no,local_output_vectors):
     browser = webdriver.Firefox()
     try:
-        list_of_pages = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
+        list_of_pages_gen = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
     except Exception as ex:
         print("HTTP Error:",ex)
     finally:
@@ -171,6 +171,8 @@ def search_engine(phrase, results_no,local_output_vectors):
                      
     #      ]
     # if True:
+        list_of_pages = [x for x in list_of_pages_gen]
+        
         for url_item in list_of_pages:
             
             #URL data extraction
