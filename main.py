@@ -15,6 +15,8 @@ import urllib
 from validate_email import validate_email
 
 from selenium import webdriver
+import selenium
+from inscriptis import get_text 
 
 #format data validation methods
 def ACCOUNT_val(data_in):
@@ -124,7 +126,7 @@ regexp_definition = [
 ['EMAIL',"[a-zA-Z0-9\._]+@[a-zA-Z0-9.]+\.[a-zA-Z0-9]+",['NICK']],
 ['POST_CODE',"[0-9]{2}-[0-9]{3}"]]
 
-def check_all_regexps(data,output_data):
+def check_all_regexps(data,output_data,what_to_add):
 
     for reg_exp_item in regexp_definition:
         results = re.findall(reg_exp_item[1],data)
@@ -132,19 +134,20 @@ def check_all_regexps(data,output_data):
             if globals()[reg_exp_item[0]+"_val"](result):
                 temp = output_data.get(result,None)
                 if temp == None:
-                    temp = [reg_exp_item[0],0]
+                    temp = [reg_exp_item[0],[]]
                 new_val = temp[1]
-                output_data.update({result:[reg_exp_item[0],new_val+1]})
-            if reg_exp_item[0]+"_post" in globals():
-                new_vectors = globals()[reg_exp_item[0]+"_post"](result,reg_exp_item[2])
-                results = re.findall(new_vectors[1].replace('.','\\.'),data)
-                output_data.update({new_vectors[1]:[new_vectors[0],len(results)]})
+                new_val.append(what_to_add)
+                output_data.update({result:[reg_exp_item[0],new_val]})
+            # if reg_exp_item[0]+"_post" in globals():
+            #     new_vectors = globals()[reg_exp_item[0]+"_post"](result,reg_exp_item[2])
+            #     results = re.findall(new_vectors[1].replace('.','\\.'),data)
+            #     output_data.update({new_vectors[1]:[new_vectors[0],len(results)]})
     return output_data
         
 #parameters
 number_of_iteration = 1
 number_of_results_per_iteration = 3 
-query = "IPhone tanio"
+query = "KOTY ROSYJSKIE"
 
 
 '''
@@ -159,57 +162,62 @@ global_output_vectors = dict()
 
 
 def search_engine(phrase, results_no,local_output_vectors):
-    '''
+
     try:
         list_of_pages = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
     except Exception as ex:
         print("HTTP Error:",ex)
     finally:
-    '''    
-    list_of_pages = ["https://www.olx.pl/oferta/iphone-xs-max-512gb-silver-bez-face-id-tanio-CID99-IDHufF7.html#b4642646e3;promoted",
-                     "https://www.olx.pl/oferta/tanio-iphone-6-plus-128gb-super-stan-CID99-IDGRvIq.html#b4642646e3",
-                     "https://allegrolokalnie.pl/oferta/iphone-8-64-gb-zloty-tanio",
-                     "https://www.twoj-smartfon.pl/pl/p/Iphone-11-64-GBCzarnyPL-DystrybucjaGwarancja-producentaWysylka-24HPOLSKI-SKLEP/1243"
+   
+    # list_of_pages = ["https://www.olx.pl/oferta/iphone-xs-max-512gb-silver-bez-face-id-tanio-CID99-IDHufF7.html#b4642646e3;promoted",
+    #                  "https://www.olx.pl/oferta/tanio-iphone-6-plus-128gb-super-stan-CID99-IDGRvIq.html#b4642646e3",
+    #                  "https://allegrolokalnie.pl/oferta/iphone-8-64-gb-zloty-tanio",
+    #                  "https://www.twoj-smartfon.pl/pl/p/Iphone-11-64-GBCzarnyPL-DystrybucjaGwarancja-producentaWysylka-24HPOLSKI-SKLEP/1243"
                      
-        ]
+    #     ]
 
-    for url_item in list_of_pages:
-        
-        #URL data extraction
-        url_scheme = urlparse(url_item).scheme
-        url_domain = urlparse(url_item).netloc
-        url_path = urlparse(url_item).path
-        url_parameters = urlparse(url_item).params
-        url_query = urlparse(url_item).query
-        print(url_item)
-        #URL rebuild
-        url_full = url_scheme+"://"+url_domain+url_path 
-        
-        if url_domain == "olx.pl" or url_domain == "www.olx.pl":
-            browser = webdriver.Firefox()
-            browser.get(url_full)
-            browser.find_element_by_id("contact_methods_below").click()
-            time.sleep(0.5)
-            source_to_check = browser.page_source
-            browser.close()
-        elif url_domain == "allegro.pl":
-            browser = webdriver.Firefox()
-            browser.get(url_full+"#aboutSeller")
-    
-            #soup = BeautifulSoup(browser.page_source, 'html.parser')
-            #results = soup.find('section','_sizcr _1xzdi _ai5yc _1vzz9 _ku8d6 _1o9j9 _1yx73 _1k7mg _10a7o')
+        for url_item in list_of_pages:
             
-            source_to_check = browser.page_source
-            browser.close()
-        else:
-            pass
-            #static_html = requests.get(url_full)
-            #source_to_check = static_html.content
+            #URL data extraction
+            url_scheme = urlparse(url_item).scheme
+            url_domain = urlparse(url_item).netloc
+            url_path = urlparse(url_item).path
+            url_parameters = urlparse(url_item).params
+            url_query = urlparse(url_item).query
+            print(url_item)
+            #URL rebuild
+            url_full = url_scheme+"://"+url_domain+url_path 
+            
+            if url_domain == "olx.pl" or url_domain == "www.olx.pl":
+#                if not 'oferta' in url_full:  #list of pages... crawl it
 
-        local_output_vectors = check_all_regexps(source_to_check, local_output_vectors)
-    
-    
-    return local_output_vectors
+                browser = webdriver.Firefox()
+                browser.get(url_full)
+                try:
+                    browser.find_element_by_id("contact_methods_below").click()
+                except selenium.common.exceptions.NoSuchElementException:
+                    pass
+                time.sleep(0.5)
+                source_to_check = browser.page_source
+                browser.close()
+            elif url_domain == "allegro.pl":
+                browser = webdriver.Firefox()
+                browser.get(url_full+"#aboutSeller")
+        
+                #soup = BeautifulSoup(browser.page_source, 'html.parser')
+                #results = soup.find('section','_sizcr _1xzdi _ai5yc _1vzz9 _ku8d6 _1o9j9 _1yx73 _1k7mg _10a7o')
+                
+                source_to_check = browser.page_source
+                browser.close()
+            else:
+                pass
+                static_html = requests.get(url_full)
+                source_to_check = get_text(static_html.content.decode('utf-8'))
+
+            local_output_vectors = check_all_regexps(source_to_check, local_output_vectors,[url_domain,url_path])
+        
+        
+        return local_output_vectors
         
 global_output_vectors = search_engine(query, number_of_results_per_iteration, global_output_vectors)
 
