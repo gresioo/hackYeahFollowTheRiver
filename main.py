@@ -8,7 +8,7 @@ import googlesearch
 import requests  
 import re
 import time
-
+import pandas as pd
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import urllib
@@ -132,12 +132,7 @@ def check_all_regexps(data,output_data,what_to_add):
         results = re.findall(reg_exp_item[1],data)
         for result in results:
             if globals()[reg_exp_item[0]+"_val"](result):
-                temp = output_data.get(result,None)
-                if temp == None:
-                    temp = [reg_exp_item[0],[]]
-                new_val = temp[1]
-                new_val.append(what_to_add)
-                output_data.update({result:[reg_exp_item[0],new_val]})
+                output_data.append({'key': result, 'value': reg_exp_item[0], 'where_found': what_to_add})
             # if reg_exp_item[0]+"_post" in globals():
             #     new_vectors = globals()[reg_exp_item[0]+"_post"](result,reg_exp_item[2])
             #     results = re.findall(new_vectors[1].replace('.','\\.'),data)
@@ -158,24 +153,24 @@ out = check_all_regexps(file_in)
 print(out)
 '''
 #global database
-global_output_vectors = dict()
+global_output_vectors = []
 
 
 def search_engine(phrase, results_no,local_output_vectors):
     browser = webdriver.Firefox()
-    # try:
-    #     list_of_pages = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
-    # except Exception as ex:
-    #     print("HTTP Error:",ex)
-    # finally:
+    try:
+        list_of_pages = googlesearch.search(phrase, tld="com", num=results_no, stop=results_no, pause=5)
+    except Exception as ex:
+        print("HTTP Error:",ex)
+    finally:
    
-    list_of_pages = ["https://www.olx.pl/oferty/q-koty-rosyjskie/",
-        #              "https://www.olx.pl/oferta/tanio-iphone-6-plus-128gb-super-stan-CID99-IDGRvIq.html#b4642646e3",
-        #              "https://allegrolokalnie.pl/oferta/iphone-8-64-gb-zloty-tanio",
-        #              "https://www.twoj-smartfon.pl/pl/p/Iphone-11-64-GBCzarnyPL-DystrybucjaGwarancja-producentaWysylka-24HPOLSKI-SKLEP/1243"
+    # list_of_pages = ["https://www.olx.pl/oferty/q-koty-rosyjskie/",
+    # #     #              "https://www.olx.pl/oferta/tanio-iphone-6-plus-128gb-super-stan-CID99-IDGRvIq.html#b4642646e3",
+    # #     #              "https://allegrolokalnie.pl/oferta/iphone-8-64-gb-zloty-tanio",
+    # #     #              "https://www.twoj-smartfon.pl/pl/p/Iphone-11-64-GBCzarnyPL-DystrybucjaGwarancja-producentaWysylka-24HPOLSKI-SKLEP/1243"
                      
-         ]
-    if True:
+    #      ]
+    # if True:
         for url_item in list_of_pages:
             
             #URL data extraction
@@ -214,7 +209,7 @@ def search_engine(phrase, results_no,local_output_vectors):
                 except selenium.common.exceptions.ElementNotInteractableException:
                     pass
                 time.sleep(0.5)
-                source_to_check = browser.page_source
+                source_to_check = get_text(browser.page_source)
                 # browser.close()
             elif url_domain == "allegro.pl":
                 browser = webdriver.Firefox()
@@ -223,14 +218,14 @@ def search_engine(phrase, results_no,local_output_vectors):
                 #soup = BeautifulSoup(browser.page_source, 'html.parser')
                 #results = soup.find('section','_sizcr _1xzdi _ai5yc _1vzz9 _ku8d6 _1o9j9 _1yx73 _1k7mg _10a7o')
                 
-                source_to_check = browser.page_source
+                source_to_check = get_text(browser.page_source)
                 # browser.close()
             else:
                 pass
                 static_html = requests.get(url_full)
                 source_to_check = get_text(static_html.content.decode('utf-8'))
 
-            local_output_vectors = check_all_regexps(source_to_check, local_output_vectors,[url_domain,url_path])
+            local_output_vectors = check_all_regexps(source_to_check, local_output_vectors,url_domain+url_path)
         
         browser.close()
         return local_output_vectors
@@ -241,6 +236,13 @@ print(global_output_vectors)
 
 #create variants
 #tbd - i.e. take nip value and create version without - or with .
+
+outputDf=pd.DataFrame(global_output_vectors)
+outputDf=outputDf.drop_duplicates(ignore_index=True)
+XLSXwriter=pd.ExcelWriter('output.xlsx')
+outputDf.groupby('key').count()['value'].to_excel(XLSXwriter,sheet_name='Summary',columns=['Key','Number of repetitions'])
+outputDf.to_excel(XLSXwriter,sheet_name='All data')
+XLSXwriter.save()
 
 
 for iteration_index in range(2,1+number_of_iteration):
